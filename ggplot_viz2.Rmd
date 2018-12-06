@@ -1,0 +1,194 @@
+---
+title: "Scatterplots, HeatMaps and Density Contour Lines"
+author: "Pranav Alva"
+date: "12/02/2018"
+output: html_document
+---
+
+Data:  `flowers` dataset in  **cluster** package
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+library("ggplot2")
+library("knitr")
+library("cluster")
+library("dplyr")
+data(flower)
+flower
+```
+
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='asis', message=FALSE}
+names(flower) <- c("winters", "shadow", "tubers", "color", "soil", "preference", "height", "distance")
+flower$winters<- recode(flower$winters, "1" = "Yes", "0"= "No")
+flower$shadow<- recode(flower$shadow, "1" = "Yes", "0"= "No")
+flower$tubers<- recode(flower$tubers, "1" = "Yes", "0"= "No")
+flower$color<- recode(flower$color, "1" = "White", "2"= "Yellow", "3" = "Pink", "4" = "Red", "5" = "Blue")
+flower$soil<- recode(flower$soil, "1" = "Dry", "2"= "Normal", "3" = "Wet")
+kable(flower)
+```
+
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+shades<-c("White","Pink","Blue","Yellow","Red")
+flower$color<- reorder(flower$color,flower$color,FUN=length)
+bar1 <- ggplot(flower, aes(color,fill=color)) + geom_bar() + xlab("Colors") + ylab("Count") + scale_fill_manual(values = shades)
+bar1
+
+flower$soil<- reorder(flower$soil,flower$soil,FUN=length)
+bar2 <- ggplot(flower, aes(soil,fill=soil)) + geom_bar() + xlab("Soil") + ylab("Count")
+bar2
+```
+
+Data: `MplsDemo` dataset in **carData** package
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+library(carData)
+library(forcats)
+library(reshape2)
+library(tidyverse)
+theme_dotplot <- theme_bw(18) +
+    theme(axis.text.y = element_text(size = rel(.75)),
+          axis.ticks.y = element_blank(),
+          axis.title.x = element_text(size = rel(.75)),
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_line(size = 0.5),
+          panel.grid.minor.x = element_blank())
+data("MplsDemo")
+MplsDemo
+```
+
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE, fig.height=20, fig.width=12}
+cplot<-ggplot(MplsDemo, aes(x = hhIncome, y = fct_reorder(neighborhood, hhIncome))) +
+    geom_point(color = "red") + ylab("") +
+    theme_dotplot
+cplot
+```
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE, fig.height=20, fig.width=12}
+MplsDemo1<-melt(MplsDemo, id.vars = "neighborhood", measure.vars = c("foreignBorn", "poverty","collegeGrad"))
+MplsDemo1$variable<- recode(MplsDemo1$variable, "foreignBorn" = "Foreign Born", "poverty"= "Poverty", "collegeGrad" = "College Grad")
+mcplot <- ggplot(MplsDemo1, aes(x = value, 
+                  y = fct_reorder2(neighborhood, variable, -value), 
+                  color = variable)) + 
+    geom_point() + xlab("Percentage") + ylab("") + theme_dotplot 
+mcplot <- mcplot + scale_color_discrete("Metric")
+mcplot
+```
+
+#####Observations
+#####1) Kenwood, Cedar-Isles-Dean and Fulton have the highest estimated mean household income while Sumner Glenwood, Phillips West and Ventura Village round up the bottom 3
+#####2) Neighborhoods with low percentage of college graduates are observed to have relatively high share of foreign born inhabitants
+#####Exceptions: Webber-Camden and Follen have low percentage of foreign nationals as well as low share college graduates
+#####3) Low percentage of college graduates are observed to be accompanied by marginally higher share of impoverished inhabitants
+#####Exceptions: Phillips West and Ventura Village have low percentage of poor people yet do not have a high percentage of college graduates
+
+### 3. Taxis
+
+Data: NYC yellow cab rides in June 2018, available here:  
+
+http://www.nyc.gov/html/tlc/html/about/trip_record_data.shtml
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+library(readr)
+library(hexbin)
+taxi_full <- read_csv("yellow_tripdata_2018-06.csv")
+taxi<-taxi_full %>% 
+  filter(tpep_pickup_datetime < as.POSIXct("2018-06-01 21:00:00", tz="UTC"))
+taxi<-taxi %>% 
+  filter(tpep_pickup_datetime > as.POSIXct("2018-06-01 20:58:00", tz="UTC"))
+
+```
+
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+splot<-ggplot(taxi, aes(tip_amount, fare_amount)) + geom_point(size=2 ,alpha = .3, color = "blue", stroke = 0) +
+    theme_classic(14) + xlab("Tip Amount") + ylab("Fare Amount")
+splot
+```
+
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+dcplot<- ggplot(taxi, aes(tip_amount, fare_amount)) + theme_grey(14) + xlab("Tip Amount") + ylab("Fare Amount") + geom_point(size = 2, alpha = .3, color = "black", stroke = 0)  + geom_density_2d(bins = 20)
+dcplot
+```
+
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+hexplot <- ggplot(taxi, aes(tip_amount, fare_amount)) + scale_fill_viridis_c() +     theme_classic(18) + geom_hex(binwidth = c(3, 15), alpha = .6) + geom_point(size = 1) + xlab("Tip Amount") + ylab("Fare Amount")
+hexplot
+```
+
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+sqrplot <- ggplot(taxi, aes(tip_amount, fare_amount)) + scale_fill_viridis_c() +     theme_classic(18) + geom_bin2d(binwidth = c(2, 10), alpha = .6) + geom_point(size = 1) + xlab("Tip Amount") + ylab("Fare Amount")
+sqrplot
+```
+
+#####Observations
+#####1) Customers are observed to exhibit primarily 3 different behaviours in terms of tipping taxi drivers
+#####   a. Many customers tend to tip linearly with the fare amount ie. As the total price of the ride increases, the tip amount increases proportionally
+#####   b. Many customers are observed to not leave any tip, hence the observed vertical trend along the zero of the x axis
+#####   c. Many customers are observed to tip in whole dollar values ie. $1, $2, $3, etc which can be observed from the pattern of vertical trends on the graphs along these tip values
+#####2) Zero tip occurences are observed to reduce after the total fare crosses the $40 mark
+#####3) Tips crossing the $10 mark are extremely rare for total fares below $20
+
+### 4. Olive Oil
+
+Data: `olives` dataset in **extracat** package
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+library(extracat)
+data(olives)
+olives
+```
+
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+sctplot <- pairs(olives[,3:10], pch = 19, lower.panel = NULL)
+sctplot
+```
+
+#####Observations
+#####Strongly Positive - Palmitic-Palmitoleic
+#####Strongly Negative - Palmitic-Oleic, Palmitoleic-Oleic, Oleic-Linoleic
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+my_cols <- c("#00AFBB", "#E7B800", "#FC4E07")  
+sctplot1<-pairs(olives[,3:10], pch = 19,  cex = 0.5,
+      col = my_cols[olives$Region],
+      lower.panel=NULL)
+sctplot1
+```
+
+#####Observations
+#####1) Each region appears to have well demarkated ranges for pairs of olive oil fatty acids with medium to strong association 
+#####2) The ranges of olive oil fatty acids pairs are more disjointed for regions in the case of olive oil fatty acids with low associations
+
+Data: `wine` dataset in **pgmm** package
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE}
+library(pgmm)
+library(GGally)
+library(MASS)
+data("wine")
+wine
+wine$Type<- recode(wine$Type, "1" = "Barolo", "2"= "Grignolino", "3"="Barbera")
+```
+
+
+```{r echo=FALSE, plot=TRUE, warning=FALSE, results='hide', message=FALSE, fig.width=12}
+p<-ggparcoord(wine, columns=c(2,6,10,15,17,20,22,27), groupColumn = 1,scale = "uniminmax")
+p
+```
+
+
+#####Observations
+#####1)Barbera and Barolo wines are found to have high alcohol content while Grignolino wines have a lower range
+#####2)Barbera wines have a wider range of high malic acid content while Barolo and Grinolino wines have lower overlapping ranges
+#####3)Grignolino wines have a wide range of alcalinity of ash while Barbera and Barolo have narrower ranges of high and low alcalinity of ash respectively
+#####4)All 3 wines fall in similar range in terms of chloride while 1 variety of Barolo shows far higher chloride content
+#####5)Barbera shows lower content of flavanoids followed by majority of Grignolino wines in turn followed by Barolo
+#####6)The color intensity of the wine are in the order Barbera, Barolo and Grignolino from high to low
+#####7)The OD280/OD 315 content is high in Barolo, low in Babera while Grignolino has a wider range overlapping its contemporaries
+#####8)Proline content is observed to be highest in Barolo while Barbera and Grignolino have lower overlapping ranges
